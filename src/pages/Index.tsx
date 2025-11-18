@@ -1,4 +1,6 @@
+import { useState } from "react";
 import BedCard from "@/components/BedCard";
+import { PatientForm } from "@/components/PatientForm";
 import { Activity, Menu, UserPlus, Settings } from "lucide-react";
 import {
   DropdownMenu,
@@ -9,6 +11,8 @@ import {
 import { Button } from "@/components/ui/button";
 
 const Index = () => {
+  const [patientFormOpen, setPatientFormOpen] = useState(false);
+  const availableBeds = ["Cama 103", "Cama 104", "Cama 105", "Cama 106"];
   const bedsData = [
     {
       bedName: "Cama 101",
@@ -69,7 +73,7 @@ const Index = () => {
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-48">
-                <DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setPatientFormOpen(true)}>
                   <UserPlus className="mr-2 h-4 w-4" />
                   Ingresar Paciente
                 </DropdownMenuItem>
@@ -91,6 +95,12 @@ const Index = () => {
           ))}
         </div>
       </main>
+
+      <PatientForm
+        open={patientFormOpen}
+        onOpenChange={setPatientFormOpen}
+        availableBeds={availableBeds}
+      />
     </div>
   );
 };
