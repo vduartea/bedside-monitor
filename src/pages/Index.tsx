@@ -2,6 +2,7 @@ import { useState } from "react";
 import BedCard from "@/components/BedCard";
 import { PatientForm } from "@/components/PatientForm";
 import { Activity, Menu, UserPlus, Settings } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -12,6 +13,7 @@ import { Button } from "@/components/ui/button";
 
 const Index = () => {
   const [patientFormOpen, setPatientFormOpen] = useState(false);
+  const navigate = useNavigate();
   const availableBeds = ["Cama 103", "Cama 104", "Cama 105", "Cama 106"];
   const bedsData = [
     {
@@ -77,7 +79,7 @@ const Index = () => {
                   <UserPlus className="mr-2 h-4 w-4" />
                   Ingresar Paciente
                 </DropdownMenuItem>
-                <DropdownMenuItem>
+                <DropdownMenuItem onClick={() => navigate("/settings")}>
                   <Settings className="mr-2 h-4 w-4" />
                   Configuración
                 </DropdownMenuItem>
