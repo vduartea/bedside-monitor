@@ -1,5 +1,12 @@
 import BedCard from "@/components/BedCard";
-import { Activity } from "lucide-react";
+import { Activity, Menu, UserPlus, Settings } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Button } from "@/components/ui/button";
 
 const Index = () => {
   const bedsData = [
@@ -42,16 +49,36 @@ const Index = () => {
       {/* Header */}
       <header className="border-b bg-card shadow-sm">
         <div className="container mx-auto px-4 py-4">
-          <div className="flex items-center gap-3">
-            <Activity className="h-8 w-8 text-primary" />
-            <div>
-              <h1 className="text-2xl font-bold text-foreground">
-                Monitorización de Camas
-              </h1>
-              <p className="text-sm text-muted-foreground">
-                Sistema de seguimiento en tiempo real
-              </p>
+          <div className="flex items-center justify-between gap-3">
+            <div className="flex items-center gap-3">
+              <Activity className="h-8 w-8 text-primary" />
+              <div>
+                <h1 className="text-2xl font-bold text-foreground">
+                  Monitorización de Camas
+                </h1>
+                <p className="text-sm text-muted-foreground">
+                  Sistema de seguimiento en tiempo real
+                </p>
+              </div>
             </div>
+            
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="icon">
+                  <Menu className="h-6 w-6" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-48">
+                <DropdownMenuItem>
+                  <UserPlus className="mr-2 h-4 w-4" />
+                  Ingresar Paciente
+                </DropdownMenuItem>
+                <DropdownMenuItem>
+                  <Settings className="mr-2 h-4 w-4" />
+                  Configuración
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
         </div>
       </header>
