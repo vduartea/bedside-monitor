@@ -1,5 +1,5 @@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
 
@@ -31,21 +31,39 @@ const Settings = () => {
 
           <TabsContent value="usuarios" className="mt-6">
             <div className="rounded-lg border border-border bg-card p-6">
-              <h2 className="text-xl font-semibold text-foreground mb-4">Gestión de Usuarios</h2>
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-xl font-semibold text-foreground">Gestión de Usuarios</h2>
+                <Button>
+                  <Plus className="h-4 w-4 mr-2" />
+                  Agregar Usuario
+                </Button>
+              </div>
               <p className="text-muted-foreground">Aquí se gestionarán los usuarios del sistema.</p>
             </div>
           </TabsContent>
 
           <TabsContent value="camas" className="mt-6">
             <div className="rounded-lg border border-border bg-card p-6">
-              <h2 className="text-xl font-semibold text-foreground mb-4">Gestión de Camas</h2>
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-xl font-semibold text-foreground">Gestión de Camas</h2>
+                <Button>
+                  <Plus className="h-4 w-4 mr-2" />
+                  Agregar Cama
+                </Button>
+              </div>
               <p className="text-muted-foreground">Aquí se gestionarán las camas del hospital.</p>
             </div>
           </TabsContent>
 
           <TabsContent value="escalas" className="mt-6">
             <div className="rounded-lg border border-border bg-card p-6">
-              <h2 className="text-xl font-semibold text-foreground mb-4">Gestión de Escalas</h2>
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-xl font-semibold text-foreground">Gestión de Escalas</h2>
+                <Button>
+                  <Plus className="h-4 w-4 mr-2" />
+                  Agregar Escala
+                </Button>
+              </div>
               <p className="text-muted-foreground">Aquí se gestionarán las escalas clínicas.</p>
             </div>
           </TabsContent>
