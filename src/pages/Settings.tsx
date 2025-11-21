@@ -1,10 +1,15 @@
+import { useState } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ArrowLeft, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
+import UserForm from "@/components/UserForm";
+import UsersTable from "@/components/UsersTable";
 
 const Settings = () => {
   const navigate = useNavigate();
+  const [userFormOpen, setUserFormOpen] = useState(false);
+  const [refreshUsers, setRefreshUsers] = useState(0);
 
   return (
     <div className="min-h-screen bg-background">
@@ -31,16 +36,22 @@ const Settings = () => {
 
           <TabsContent value="usuarios" className="mt-6">
             <div className="rounded-lg border border-border bg-card p-6">
-              <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center justify-between mb-6">
                 <h2 className="text-xl font-semibold text-foreground">Gestión de Usuarios</h2>
-                <Button>
+                <Button onClick={() => setUserFormOpen(true)}>
                   <Plus className="h-4 w-4 mr-2" />
                   Agregar Usuario
                 </Button>
               </div>
-              <p className="text-muted-foreground">Aquí se gestionarán los usuarios del sistema.</p>
+              <UsersTable refresh={refreshUsers} />
             </div>
           </TabsContent>
+
+          <UserForm
+            open={userFormOpen}
+            onOpenChange={setUserFormOpen}
+            onUserAdded={() => setRefreshUsers((prev) => prev + 1)}
+          />
 
           <TabsContent value="camas" className="mt-6">
             <div className="rounded-lg border border-border bg-card p-6">
