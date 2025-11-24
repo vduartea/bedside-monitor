@@ -7,6 +7,7 @@ import Index from "./pages/Index";
 import Settings from "./pages/Settings";
 import Login from "./pages/Login";
 import NotFound from "./pages/NotFound";
+import BedDetail from "./pages/BedDetail";
 
 const queryClient = new QueryClient();
 
@@ -19,6 +20,7 @@ const App = () => (
         <Routes>
           <Route path="/" element={<Login />} />
           <Route path="/dashboard" element={<Index />} />
+          <Route path="/bed/:bedId" element={<BedDetail />} />
           <Route path="/settings" element={<Settings />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
