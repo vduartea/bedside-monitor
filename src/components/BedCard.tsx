@@ -1,5 +1,6 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { useNavigate } from "react-router-dom";
 import { AlertTriangle, User, Activity } from "lucide-react";
 
 interface BedCardProps {
@@ -48,8 +49,18 @@ const BedCard = ({
   scales,
   risks,
 }: BedCardProps) => {
+  const navigate = useNavigate();
+  
+  const handleClick = () => {
+    const bedId = bedName.toLowerCase().replace(" ", "-");
+    navigate(`/bed/${bedId}`);
+  };
+
   return (
-    <Card className="hover:shadow-lg transition-shadow">
+    <Card 
+      className="hover:shadow-lg transition-all cursor-pointer hover:scale-[1.02]"
+      onClick={handleClick}
+    >
       <CardHeader className="pb-3">
         <CardTitle className="flex items-center justify-between">
           <span className="text-primary">{bedName}</span>
