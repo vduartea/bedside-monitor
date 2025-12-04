@@ -40,6 +40,8 @@ exports.register = async (req, res) => {
   }
 };
 
+
+
 // Login
 exports.login = async (req, res) => {
   try {
@@ -60,6 +62,7 @@ exports.login = async (req, res) => {
     }
 
     const user = result.rows[0];
+
 
     // Comparar contraseña
     const isValid = await bcrypt.compare(password, user.password_hash);
@@ -84,7 +87,15 @@ exports.login = async (req, res) => {
     });
 
   } catch (err) {
-    console.error('Error en login:', err);
-    res.status(500).json({ message: 'Error interno' });
-  }
+      console.error('❌ ERROR en /login');
+      console.error('Mensaje:', err.message);
+      console.error('Stack:', err.stack);
+      console.error('Detalles completos:', err);
+      
+      res.status(500).json({ 
+        message: 'Error interno',
+        error: err.message  // puedes comentar esto si no quieres exponer info al cliente
+      });
+    }
+
 };

@@ -1,4 +1,5 @@
 require('dotenv').config();
+process.env.GOOGLE_APPLICATION_CREDENTIALS = process.env.GOOGLE_APPLICATION_CREDENTIALS;
 const express = require('express');
 const cors = require('cors');
 
