@@ -7,15 +7,25 @@ import {
   Calendar,
   ClipboardList,
   Plus,
-  ChevronDown
+  ChevronDown,
+  Settings,
+  X
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
-import { Checkbox } from "@/components/ui/checkbox";
+import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Input } from "@/components/ui/input";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { ScaleRegistrationDialog } from "@/components/ScaleRegistrationDialog";
 import { EventTimeline } from "@/components/EventTimeline";
 import { differenceInDays, format } from "date-fns";
@@ -84,6 +94,19 @@ const mockBedData = {
   },
 };
 
+interface ClinicalFactorOption {
+  id: string;
+  label: string;
+  enabled: boolean;
+}
+
+const defaultFactorOptions: ClinicalFactorOption[] = [
+  { id: "intubated", label: "Entubado", enabled: true },
+  { id: "sedated", label: "Sedado", enabled: true },
+  { id: "agitated", label: "Agitado", enabled: true },
+  { id: "limitedMobility", label: "Movilidad Limitada", enabled: true },
+];
+
 const getRiskColor = (risk: "low" | "medium" | "high") => {
   switch (risk) {
     case "low":
@@ -113,7 +136,10 @@ const BedDetail = () => {
   const [selectedScale, setSelectedScale] = useState<string>("");
   const [newNote, setNewNote] = useState("");
   const [visibleNotes, setVisibleNotes] = useState(20);
-  const [clinicalFactors, setClinicalFactors] = useState({
+  const [configDialogOpen, setConfigDialogOpen] = useState(false);
+  const [newFactorLabel, setNewFactorLabel] = useState("");
+  const [factorOptions, setFactorOptions] = useState<ClinicalFactorOption[]>(defaultFactorOptions);
+  const [clinicalFactors, setClinicalFactors] = useState<Record<string, boolean>>({
     intubated: false,
     sedated: false,
     agitated: false,
@@ -157,10 +183,10 @@ const BedDetail = () => {
     setScaleDialogOpen(true);
   };
 
-  const handleFactorChange = (factor: keyof typeof clinicalFactors) => {
+  const handleFactorChange = (factorId: string) => {
     setClinicalFactors(prev => ({
       ...prev,
-      [factor]: !prev[factor]
+      [factorId]: !prev[factorId]
     }));
   };
 
@@ -176,8 +202,33 @@ const BedDetail = () => {
     setVisibleNotes(prev => prev + 20);
   };
 
+  const handleAddFactor = () => {
+    if (newFactorLabel.trim()) {
+      const newId = newFactorLabel.toLowerCase().replace(/\s+/g, '_');
+      setFactorOptions(prev => [
+        ...prev,
+        { id: newId, label: newFactorLabel.trim(), enabled: true }
+      ]);
+      setClinicalFactors(prev => ({
+        ...prev,
+        [newId]: false
+      }));
+      setNewFactorLabel("");
+    }
+  };
+
+  const handleRemoveFactor = (factorId: string) => {
+    setFactorOptions(prev => prev.filter(f => f.id !== factorId));
+    setClinicalFactors(prev => {
+      const newFactors = { ...prev };
+      delete newFactors[factorId];
+      return newFactors;
+    });
+  };
+
   const displayedNotes = bedData.clinicalNotes.slice(0, visibleNotes);
   const hasMoreNotes = bedData.clinicalNotes.length > visibleNotes;
+  const enabledFactors = factorOptions.filter(f => f.enabled);
 
   return (
     <div className="min-h-screen bg-background">
@@ -222,9 +273,9 @@ const BedDetail = () => {
 
       {/* Main Content */}
       <main className="container mx-auto px-4 py-6">
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Left Column - Main Info */}
-          <div className="lg:col-span-2 space-y-6">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+          {/* Left Column - 35% (reduced 10% from ~45%) */}
+          <div className="lg:col-span-4 space-y-6">
             {/* Patient Info Card */}
             <Card>
               <CardHeader>
@@ -270,6 +321,36 @@ const BedDetail = () => {
               </CardContent>
             </Card>
 
+            {/* Clinical Factors - Moved below Patient Info */}
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle>Factores Clínicos Relevantes</CardTitle>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => setConfigDialogOpen(true)}
+                >
+                  <Settings className="h-4 w-4" />
+                </Button>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-2 gap-4">
+                  {enabledFactors.map((factor) => (
+                    <div key={factor.id} className="flex items-center space-x-3">
+                      <Switch
+                        id={factor.id}
+                        checked={clinicalFactors[factor.id] || false}
+                        onCheckedChange={() => handleFactorChange(factor.id)}
+                      />
+                      <Label htmlFor={factor.id} className="text-sm font-medium cursor-pointer">
+                        {factor.label}
+                      </Label>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+
             {/* Event Timeline */}
             <Card>
               <CardHeader>
@@ -285,8 +366,49 @@ const BedDetail = () => {
                 <EventTimeline bedId={bedId || ""} />
               </CardContent>
             </Card>
+          </div>
 
-            {/* Clinical Notes Section */}
+          {/* Right Column - 65% (increased 20% from ~55%) */}
+          <div className="lg:col-span-8 space-y-6">
+            {/* Scales and Registration */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Escalas Clínicas</CardTitle>
+                <CardDescription>
+                  Última evaluación - {format(new Date(), "dd MMM yyyy HH:mm", { locale: es })}
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {bedData.scales.map((scale) => (
+                    <div key={scale.label} className="space-y-2">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="font-medium text-foreground">{scale.label}</p>
+                          <p className="text-sm text-muted-foreground">
+                            {scale.value} / {scale.maxValue} puntos
+                          </p>
+                        </div>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleRegisterScale(scale.label)}
+                        >
+                          <ClipboardList className="mr-2 h-4 w-4" />
+                          Registrar
+                        </Button>
+                      </div>
+                      <Progress 
+                        value={(scale.value / scale.maxValue) * 100} 
+                        className="h-2"
+                      />
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Clinical Notes Section - Moved to second column */}
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
@@ -352,98 +474,54 @@ const BedDetail = () => {
               </CardContent>
             </Card>
           </div>
-
-          {/* Right Column - Sidebar */}
-          <div className="space-y-6">
-            {/* Clinical Factors */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Factores Clínicos Relevantes</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="flex items-center space-x-3">
-                  <Checkbox
-                    id="intubated"
-                    checked={clinicalFactors.intubated}
-                    onCheckedChange={() => handleFactorChange("intubated")}
-                  />
-                  <Label htmlFor="intubated" className="text-sm font-medium cursor-pointer">
-                    Entubado
-                  </Label>
-                </div>
-                <div className="flex items-center space-x-3">
-                  <Checkbox
-                    id="sedated"
-                    checked={clinicalFactors.sedated}
-                    onCheckedChange={() => handleFactorChange("sedated")}
-                  />
-                  <Label htmlFor="sedated" className="text-sm font-medium cursor-pointer">
-                    Sedado
-                  </Label>
-                </div>
-                <div className="flex items-center space-x-3">
-                  <Checkbox
-                    id="agitated"
-                    checked={clinicalFactors.agitated}
-                    onCheckedChange={() => handleFactorChange("agitated")}
-                  />
-                  <Label htmlFor="agitated" className="text-sm font-medium cursor-pointer">
-                    Agitado
-                  </Label>
-                </div>
-                <div className="flex items-center space-x-3">
-                  <Checkbox
-                    id="limitedMobility"
-                    checked={clinicalFactors.limitedMobility}
-                    onCheckedChange={() => handleFactorChange("limitedMobility")}
-                  />
-                  <Label htmlFor="limitedMobility" className="text-sm font-medium cursor-pointer">
-                    Movilidad Limitada
-                  </Label>
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Scales and Registration */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Escalas Clínicas</CardTitle>
-                <CardDescription>
-                  Última evaluación - {format(new Date(), "dd MMM yyyy HH:mm", { locale: es })}
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-6">
-                  {bedData.scales.map((scale) => (
-                    <div key={scale.label} className="space-y-2">
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <p className="font-medium text-foreground">{scale.label}</p>
-                          <p className="text-sm text-muted-foreground">
-                            {scale.value} / {scale.maxValue} puntos
-                          </p>
-                        </div>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => handleRegisterScale(scale.label)}
-                        >
-                          <ClipboardList className="mr-2 h-4 w-4" />
-                          Registrar
-                        </Button>
-                      </div>
-                      <Progress 
-                        value={(scale.value / scale.maxValue) * 100} 
-                        className="h-2"
-                      />
-                    </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-          </div>
         </div>
       </main>
+
+      {/* Clinical Factors Configuration Dialog */}
+      <Dialog open={configDialogOpen} onOpenChange={setConfigDialogOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Configurar Factores Clínicos</DialogTitle>
+            <DialogDescription>
+              Agregar o quitar factores clínicos de la lista
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            {/* Add New Factor */}
+            <div className="flex gap-2">
+              <Input
+                placeholder="Nuevo factor clínico..."
+                value={newFactorLabel}
+                onChange={(e) => setNewFactorLabel(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && handleAddFactor()}
+              />
+              <Button onClick={handleAddFactor} disabled={!newFactorLabel.trim()}>
+                <Plus className="h-4 w-4" />
+              </Button>
+            </div>
+
+            {/* Existing Factors List */}
+            <div className="space-y-2 max-h-[300px] overflow-y-auto">
+              {factorOptions.map((factor) => (
+                <div
+                  key={factor.id}
+                  className="flex items-center justify-between p-2 rounded-lg border bg-muted/30"
+                >
+                  <span className="text-sm font-medium">{factor.label}</span>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8 text-destructive hover:text-destructive"
+                    onClick={() => handleRemoveFactor(factor.id)}
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
+                </div>
+              ))}
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       <ScaleRegistrationDialog
         open={scaleDialogOpen}
