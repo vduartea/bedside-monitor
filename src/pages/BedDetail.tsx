@@ -274,8 +274,8 @@ const BedDetail = () => {
       {/* Main Content */}
       <main className="container mx-auto px-4 py-6">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-          {/* Left Column - 35% (reduced 10% from ~45%) */}
-          <div className="lg:col-span-4 space-y-6">
+          {/* Left Column - 60% */}
+          <div className="lg:col-span-7 space-y-6">
             {/* Patient Info Card */}
             <Card>
               <CardHeader>
@@ -368,8 +368,8 @@ const BedDetail = () => {
             </Card>
           </div>
 
-          {/* Right Column - 65% (increased 20% from ~55%) */}
-          <div className="lg:col-span-8 space-y-6">
+          {/* Right Column - 40% */}
+          <div className="lg:col-span-5 space-y-6">
             {/* Scales and Registration */}
             <Card>
               <CardHeader>
