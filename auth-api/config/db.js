@@ -8,12 +8,12 @@ const pool = new Pool({
     user: process.env.DB_USER,
     database: process.env.DB_NAME,
     password: process.env.DB_PASSWORD,
-    host: process.env.DB_HOST, // para dev
-    port: process.env.DB_PORT, // para dev
-    ssl: { rejectUnauthorized: false,    } // para dev
+    //host: process.env.DB_HOST, // para dev
+    //port: process.env.DB_PORT, // para dev
+    //ssl: { rejectUnauthorized: false,    } // para dev
 
-    //host: `/cloudsql/${process.env.INSTANCE_CONNECTION_NAME}`, //IMPORTANTE Para produccion
-    //ssl: false  // IMPORTANTE Para produccion
+    host: `/cloudsql/${process.env.INSTANCE_CONNECTION_NAME}`, //IMPORTANTE Para produccion
+    ssl: false  // IMPORTANTE Para produccion
     // IMPORTANTE PARA EVITAR TLS + PROXY ERRORS EN CLOUD SQL
     
 });
