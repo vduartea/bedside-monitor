@@ -4,22 +4,30 @@ import {
   ArrowLeft, 
   Activity, 
   AlertCircle, 
-  TrendingUp,
   Calendar,
   ClipboardList,
-  Heart,
-  Thermometer,
-  Droplets,
-  Wind
+  Plus,
+  ChevronDown,
+  Settings,
+  X
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Progress } from "@/components/ui/progress";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Input } from "@/components/ui/input";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { ScaleRegistrationDialog } from "@/components/ScaleRegistrationDialog";
 import { EventTimeline } from "@/components/EventTimeline";
-import { VitalSignsChart } from "@/components/VitalSignsChart";
 import { differenceInDays, format } from "date-fns";
 import { es } from "date-fns/locale";
 
@@ -42,15 +50,18 @@ const mockBedData = {
       extubationRisk: "low" as const,
       pressureInjuryRisk: "medium" as const,
     },
-    vitalSigns: [
-      { time: "06:00", hr: 78, bp: "120/80", temp: 36.8, spo2: 98 },
-      { time: "12:00", hr: 82, bp: "125/82", temp: 37.1, spo2: 97 },
-      { time: "18:00", hr: 76, bp: "118/78", temp: 36.9, spo2: 98 },
-    ],
-    medications: [
-      { name: "Amoxicilina", dose: "500mg", frequency: "c/8h", route: "VO" },
-      { name: "Paracetamol", dose: "1g", frequency: "c/6h PRN", route: "VO" },
-      { name: "Omeprazol", dose: "40mg", frequency: "c/24h", route: "VO" },
+    clinicalFactors: {
+      intubated: false,
+      sedated: false,
+      agitated: true,
+      limitedMobility: true,
+    },
+    clinicalNotes: [
+      { id: "1", content: "Paciente presenta mejoría en saturación de oxígeno. Se mantiene con O2 por cánula nasal.", date: new Date("2024-11-20T14:30:00"), author: "Enf. García" },
+      { id: "2", content: "Se realiza cambio de posición cada 2 horas según protocolo.", date: new Date("2024-11-20T12:00:00"), author: "Enf. López" },
+      { id: "3", content: "Paciente refiere dolor leve en región lumbar. Se administra analgésico según indicación.", date: new Date("2024-11-20T08:00:00"), author: "Enf. Martínez" },
+      { id: "4", content: "Signos vitales estables durante la noche. Sin eventos adversos.", date: new Date("2024-11-19T22:00:00"), author: "Enf. Rodríguez" },
+      { id: "5", content: "Se inicia rehabilitación respiratoria con kinesiólogo.", date: new Date("2024-11-19T16:00:00"), author: "Klgo. Fernández" },
     ],
   },
   "cama-102": {
@@ -70,19 +81,31 @@ const mockBedData = {
       extubationRisk: "high" as const,
       pressureInjuryRisk: "low" as const,
     },
-    vitalSigns: [
-      { time: "06:00", hr: 92, bp: "135/88", temp: 37.2, spo2: 95 },
-      { time: "12:00", hr: 88, bp: "130/85", temp: 37.4, spo2: 96 },
-      { time: "18:00", hr: 85, bp: "128/82", temp: 37.0, spo2: 97 },
-    ],
-    medications: [
-      { name: "Atorvastatina", dose: "40mg", frequency: "c/24h", route: "VO" },
-      { name: "AAS", dose: "100mg", frequency: "c/24h", route: "VO" },
-      { name: "Enalapril", dose: "10mg", frequency: "c/12h", route: "VO" },
-      { name: "Furosemida", dose: "40mg", frequency: "c/12h", route: "VO" },
+    clinicalFactors: {
+      intubated: true,
+      sedated: true,
+      agitated: false,
+      limitedMobility: true,
+    },
+    clinicalNotes: [
+      { id: "1", content: "Post-operatorio inmediato estable. Paciente bajo sedación.", date: new Date("2024-11-20T10:00:00"), author: "Dr. Sánchez" },
+      { id: "2", content: "Se mantiene monitoreo continuo. Drenajes con débito esperado.", date: new Date("2024-11-19T18:00:00"), author: "Enf. García" },
     ],
   },
 };
+
+interface ClinicalFactorOption {
+  id: string;
+  label: string;
+  enabled: boolean;
+}
+
+const defaultFactorOptions: ClinicalFactorOption[] = [
+  { id: "intubated", label: "Entubado", enabled: true },
+  { id: "sedated", label: "Sedado", enabled: true },
+  { id: "agitated", label: "Agitado", enabled: true },
+  { id: "limitedMobility", label: "Movilidad Limitada", enabled: true },
+];
 
 const getRiskColor = (risk: "low" | "medium" | "high") => {
   switch (risk) {
@@ -111,8 +134,26 @@ const BedDetail = () => {
   const navigate = useNavigate();
   const [scaleDialogOpen, setScaleDialogOpen] = useState(false);
   const [selectedScale, setSelectedScale] = useState<string>("");
+  const [newNote, setNewNote] = useState("");
+  const [visibleNotes, setVisibleNotes] = useState(20);
+  const [configDialogOpen, setConfigDialogOpen] = useState(false);
+  const [newFactorLabel, setNewFactorLabel] = useState("");
+  const [factorOptions, setFactorOptions] = useState<ClinicalFactorOption[]>(defaultFactorOptions);
+  const [clinicalFactors, setClinicalFactors] = useState<Record<string, boolean>>({
+    intubated: false,
+    sedated: false,
+    agitated: false,
+    limitedMobility: false,
+  });
 
   const bedData = mockBedData[bedId as keyof typeof mockBedData];
+
+  // Initialize clinical factors from bed data
+  useState(() => {
+    if (bedData) {
+      setClinicalFactors(bedData.clinicalFactors);
+    }
+  });
 
   if (!bedData) {
     return (
@@ -141,6 +182,53 @@ const BedDetail = () => {
     setSelectedScale(scaleName);
     setScaleDialogOpen(true);
   };
+
+  const handleFactorChange = (factorId: string) => {
+    setClinicalFactors(prev => ({
+      ...prev,
+      [factorId]: !prev[factorId]
+    }));
+  };
+
+  const handleAddNote = () => {
+    if (newNote.trim()) {
+      // En producción, esto se enviaría a la base de datos
+      console.log("Nueva nota:", newNote);
+      setNewNote("");
+    }
+  };
+
+  const handleLoadMoreNotes = () => {
+    setVisibleNotes(prev => prev + 20);
+  };
+
+  const handleAddFactor = () => {
+    if (newFactorLabel.trim()) {
+      const newId = newFactorLabel.toLowerCase().replace(/\s+/g, '_');
+      setFactorOptions(prev => [
+        ...prev,
+        { id: newId, label: newFactorLabel.trim(), enabled: true }
+      ]);
+      setClinicalFactors(prev => ({
+        ...prev,
+        [newId]: false
+      }));
+      setNewFactorLabel("");
+    }
+  };
+
+  const handleRemoveFactor = (factorId: string) => {
+    setFactorOptions(prev => prev.filter(f => f.id !== factorId));
+    setClinicalFactors(prev => {
+      const newFactors = { ...prev };
+      delete newFactors[factorId];
+      return newFactors;
+    });
+  };
+
+  const displayedNotes = bedData.clinicalNotes.slice(0, visibleNotes);
+  const hasMoreNotes = bedData.clinicalNotes.length > visibleNotes;
+  const enabledFactors = factorOptions.filter(f => f.enabled);
 
   return (
     <div className="min-h-screen bg-background">
@@ -185,9 +273,9 @@ const BedDetail = () => {
 
       {/* Main Content */}
       <main className="container mx-auto px-4 py-6">
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Left Column - Main Info */}
-          <div className="lg:col-span-2 space-y-6">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+          {/* Left Column - 60% */}
+          <div className="lg:col-span-7 space-y-6">
             {/* Patient Info Card */}
             <Card>
               <CardHeader>
@@ -233,6 +321,55 @@ const BedDetail = () => {
               </CardContent>
             </Card>
 
+            {/* Clinical Factors - Moved below Patient Info */}
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle>Factores Clínicos Relevantes</CardTitle>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => setConfigDialogOpen(true)}
+                >
+                  <Settings className="h-4 w-4" />
+                </Button>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-2 gap-4">
+                  {enabledFactors.map((factor) => (
+                    <div key={factor.id} className="flex items-center space-x-3">
+                      <Switch
+                        id={factor.id}
+                        checked={clinicalFactors[factor.id] || false}
+                        onCheckedChange={() => handleFactorChange(factor.id)}
+                      />
+                      <Label htmlFor={factor.id} className="text-sm font-medium cursor-pointer">
+                        {factor.label}
+                      </Label>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Event Timeline */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <AlertCircle className="h-5 w-5" />
+                  Línea de Tiempo de Eventos
+                </CardTitle>
+                <CardDescription>
+                  Historial de eventos y alertas de riesgo
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <EventTimeline bedId={bedId || ""} />
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Right Column - 40% */}
+          <div className="lg:col-span-5 space-y-6">
             {/* Scales and Registration */}
             <Card>
               <CardHeader>
@@ -242,7 +379,7 @@ const BedDetail = () => {
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="space-y-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   {bedData.scales.map((scale) => (
                     <div key={scale.label} className="space-y-2">
                       <div className="flex items-center justify-between">
@@ -271,142 +408,120 @@ const BedDetail = () => {
               </CardContent>
             </Card>
 
-            {/* Vital Signs Chart */}
+            {/* Clinical Notes Section - Moved to second column */}
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
-                  <TrendingUp className="h-5 w-5" />
-                  Signos Vitales
-                </CardTitle>
-                <CardDescription>Últimas 24 horas</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <VitalSignsChart data={bedData.vitalSigns} />
-              </CardContent>
-            </Card>
-
-            {/* Event Timeline */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <AlertCircle className="h-5 w-5" />
-                  Línea de Tiempo de Eventos
+                  <ClipboardList className="h-5 w-5" />
+                  Notas Clínicas
                 </CardTitle>
                 <CardDescription>
-                  Historial de eventos y alertas de riesgo
+                  Registro y visualización de notas del equipo de salud
                 </CardDescription>
               </CardHeader>
-              <CardContent>
-                <EventTimeline bedId={bedId || ""} />
-              </CardContent>
-            </Card>
-          </div>
-
-          {/* Right Column - Sidebar */}
-          <div className="space-y-6">
-            {/* Quick Vital Signs */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Signos Vitales Actuales</CardTitle>
-              </CardHeader>
               <CardContent className="space-y-4">
-                {bedData.vitalSigns[bedData.vitalSigns.length - 1] && (
-                  <>
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <Heart className="h-5 w-5 text-red-500" />
-                        <span className="text-sm font-medium">FC</span>
-                      </div>
-                      <span className="text-xl font-bold">
-                        {bedData.vitalSigns[bedData.vitalSigns.length - 1].hr} lpm
-                      </span>
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <Activity className="h-5 w-5 text-blue-500" />
-                        <span className="text-sm font-medium">PA</span>
-                      </div>
-                      <span className="text-xl font-bold">
-                        {bedData.vitalSigns[bedData.vitalSigns.length - 1].bp} mmHg
-                      </span>
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <Thermometer className="h-5 w-5 text-orange-500" />
-                        <span className="text-sm font-medium">Temp</span>
-                      </div>
-                      <span className="text-xl font-bold">
-                        {bedData.vitalSigns[bedData.vitalSigns.length - 1].temp}°C
-                      </span>
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <Wind className="h-5 w-5 text-cyan-500" />
-                        <span className="text-sm font-medium">SpO₂</span>
-                      </div>
-                      <span className="text-xl font-bold">
-                        {bedData.vitalSigns[bedData.vitalSigns.length - 1].spo2}%
-                      </span>
-                    </div>
-                  </>
-                )}
-              </CardContent>
-            </Card>
-
-            {/* Medications */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Medicación Actual</CardTitle>
-              </CardHeader>
-              <CardContent>
+                {/* Add New Note */}
                 <div className="space-y-3">
-                  {bedData.medications.map((med, index) => (
-                    <div
-                      key={index}
-                      className="p-3 rounded-lg border bg-card"
-                    >
-                      <p className="font-medium text-foreground">{med.name}</p>
-                      <p className="text-sm text-muted-foreground">
-                        {med.dose} - {med.frequency} ({med.route})
-                      </p>
-                    </div>
-                  ))}
+                  <Textarea
+                    placeholder="Escribir nueva nota clínica..."
+                    value={newNote}
+                    onChange={(e) => setNewNote(e.target.value)}
+                    className="min-h-[100px]"
+                  />
+                  <Button 
+                    onClick={handleAddNote} 
+                    disabled={!newNote.trim()}
+                    className="w-full sm:w-auto"
+                  >
+                    <Plus className="mr-2 h-4 w-4" />
+                    Agregar Nota
+                  </Button>
                 </div>
-              </CardContent>
-            </Card>
 
-            {/* Metrics Summary */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Métricas del Día</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div>
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="text-sm font-medium">Balance Hídrico</span>
-                    <span className="text-sm font-bold">+350 ml</span>
+                {/* Notes History */}
+                <div className="border-t pt-4 mt-4">
+                  <h4 className="text-sm font-medium text-muted-foreground mb-3">
+                    Historial de Notas
+                  </h4>
+                  <div className="space-y-3">
+                    {displayedNotes.map((note) => (
+                      <div
+                        key={note.id}
+                        className="p-3 rounded-lg border bg-muted/30"
+                      >
+                        <p className="text-sm text-foreground">{note.content}</p>
+                        <div className="flex items-center justify-between mt-2 text-xs text-muted-foreground">
+                          <span>{note.author}</span>
+                          <span>
+                            {format(note.date, "dd MMM yyyy HH:mm", { locale: es })}
+                          </span>
+                        </div>
+                      </div>
+                    ))}
                   </div>
-                  <Progress value={60} className="h-2" />
-                </div>
-                <div>
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="text-sm font-medium">Ingesta Oral</span>
-                    <span className="text-sm font-bold">1200 ml</span>
-                  </div>
-                  <Progress value={75} className="h-2" />
-                </div>
-                <div>
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="text-sm font-medium">Diuresis</span>
-                    <span className="text-sm font-bold">850 ml</span>
-                  </div>
-                  <Progress value={65} className="h-2" />
+
+                  {hasMoreNotes && (
+                    <Button
+                      variant="outline"
+                      onClick={handleLoadMoreNotes}
+                      className="w-full mt-4"
+                    >
+                      <ChevronDown className="mr-2 h-4 w-4" />
+                      Cargar más
+                    </Button>
+                  )}
                 </div>
               </CardContent>
             </Card>
           </div>
         </div>
       </main>
+
+      {/* Clinical Factors Configuration Dialog */}
+      <Dialog open={configDialogOpen} onOpenChange={setConfigDialogOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Configurar Factores Clínicos</DialogTitle>
+            <DialogDescription>
+              Agregar o quitar factores clínicos de la lista
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            {/* Add New Factor */}
+            <div className="flex gap-2">
+              <Input
+                placeholder="Nuevo factor clínico..."
+                value={newFactorLabel}
+                onChange={(e) => setNewFactorLabel(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && handleAddFactor()}
+              />
+              <Button onClick={handleAddFactor} disabled={!newFactorLabel.trim()}>
+                <Plus className="h-4 w-4" />
+              </Button>
+            </div>
+
+            {/* Existing Factors List */}
+            <div className="space-y-2 max-h-[300px] overflow-y-auto">
+              {factorOptions.map((factor) => (
+                <div
+                  key={factor.id}
+                  className="flex items-center justify-between p-2 rounded-lg border bg-muted/30"
+                >
+                  <span className="text-sm font-medium">{factor.label}</span>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8 text-destructive hover:text-destructive"
+                    onClick={() => handleRemoveFactor(factor.id)}
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
+                </div>
+              ))}
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       <ScaleRegistrationDialog
         open={scaleDialogOpen}
