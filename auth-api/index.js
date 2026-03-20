@@ -11,7 +11,7 @@ const scalesRoutes = require('./api/routes/scales');
 const scaleApplication = require('./api/routes/scaleApplications');
 const episodesRoutes = require("./api/routes/episodes");
 const notesRoutes = require("./api/routes/notes");
-
+const clinfactorsRoutes = require("./api/routes/clinical_factors");
 
 const app = express();
 app.use(cors());
@@ -26,6 +26,7 @@ app.use("/api/scales", scalesRoutes);
 app.use("/api/scaleApplications", scaleApplication);
 app.use("/api/episodes", episodesRoutes);
 app.use("/api/notes", notesRoutes);
+app.use("/api/clinical_factors", clinfactorsRoutes);
 
 // DOCUMENTACIÓN MANUAL
 const rutasDisponibles = [
@@ -174,6 +175,28 @@ const rutasDisponibles = [
       "Guarda fecha y hora del momento que se consume la API"
     ],
     responseExample: JSON.stringify([{    "message": "Nota clínica creada correctamente",    "note": {        "id": 1,        "episode_id": 9,        "created_by": 3,        "note_text": "Paciente con riesgo de caída. Se refuerzan medidas de seguridad y supervisión.",        "created_at": "2026-02-06T23:11:16.622Z"    }}], null, 2)
+  },
+    {
+    path: "/api/clinical_factors/episode/{episode_id}",
+    description: "Consulta todos los factores clinicos del episodio dado",
+    method: "GET",
+    bodyExample: "N/A",
+    rules: ["Se debe indicar un ID de episodio valido",
+      "Guarda fecha y hora del momento que se consume la API"
+    ],
+    responseExample: JSON.stringify([{"ok":true,"count":2,"data":[{"id":1,"episode_id":9,"factor_name":"Sedado","factor_value":"1","is_active":true,"created_at":"2026-03-19T13:43:20.299Z","created_by":"system","updated_at":"2026-03-19T13:43:20.299Z","updated_by":"system"},{"id":2,"episode_id":9,"factor_name":"Entubado","factor_value":"0","is_active":true,"created_at":"2026-03-19T13:43:20.479Z","created_by":"system","updated_at":"2026-03-19T13:43:20.479Z","updated_by":"system"}]}], null, 2)
+  },
+  {
+    path: "/api/clinical_factors",
+    description: "Registra todos los factores clinicos del episodio dado",
+    method: "POST",
+    bodyExample: JSON.stringify({  "episode_id": 8,  "factor_name": "sedado",  "factor_value": "1",  "is_active": true,  "created_by": "system",  "updated_by": "system"}, null, 2),
+    rules: ["Se debe indicar un ID de episodio valido",
+      "Para crear nuevo registro debe ir el created_by",
+      "Para actualizar debe ser el mismo factor_name",
+      "Guarda fecha y hora del momento que se consume la API"
+    ],
+    responseExample: JSON.stringify([{"ok": true,"count": 1,"data": [{"action": "updated","data": {"id": 5,"episode_id": 8,"factor_name": "Autonomo","factor_value": "1","is_active": true,"created_at":"2026-03-20T16:32:41.262Z","created_by": "system","updated_at": "2026-03-20T16:32:54.682Z","updated_by": "system"}}]}], null, 2)
   }
 ];
 
