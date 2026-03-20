@@ -10,6 +10,8 @@ const patientRoutes = require('./api/routes/patient');
 const scalesRoutes = require('./api/routes/scales');
 const scaleApplication = require('./api/routes/scaleApplications');
 const episodesRoutes = require("./api/routes/episodes");
+const notesRoutes = require("./api/routes/notes");
+
 
 const app = express();
 app.use(cors());
@@ -23,6 +25,7 @@ app.use("/api/patient", patientRoutes);
 app.use("/api/scales", scalesRoutes);
 app.use("/api/scaleApplications", scaleApplication);
 app.use("/api/episodes", episodesRoutes);
+app.use("/api/notes", notesRoutes);
 
 // DOCUMENTACIÓN MANUAL
 const rutasDisponibles = [
@@ -151,6 +154,26 @@ const rutasDisponibles = [
     bodyExample: "N/A",
     rules: ["Debe tener autorización con token"],
     responseExample: JSON.stringify([{    "message": "Episodios activos obtenidos correctamente",    "total": 7,    "episodes": [        {            "episode": {                "id": 14,                "bed_id": 1,                "created_at": "2025-12-29T12:44:18.109725",                "is_sedated": true,                "patient_id": 16,                "updated_at": "2025-12-29T12:44:18.109725",                "is_intubated": false,                "admission_datetime": "2025-12-29T09:44:00",                "discharge_datetime": null,                "admission_diagnosis": "Prueba"            },            "patient": {                "id": 16,                "names": "Franco",                "doctype": "RUT",                "sextype": "M",                "surname1": "Lopez",                "surname2": "Estrada",                "birthdate": "2004-07-15",                "pinnumber": "19068910-7",                "created_at": "2025-12-29T12:44:18.071182",                "updated_at": "2025-12-29T12:44:18.071182"            },            "bed": {                "id": 1,                "code": "C-101",                "status": "Libre",                "service": "UCI",                "location": "Habitación 4",                "specialty": "Pediatría 2",                "created_at": "2025-12-09T16:11:52.5226",                "updated_at": "2025-12-30T12:35:34.308351"            },            "latest_scales": []        }]}], null, 2)
+  },
+  {
+    path: "/api/notes/id_episodio",
+    description: "Lista todas las notas clinicas realizadas a un episodio",
+    method: "GET",
+    bodyExample: "N/A",
+    rules: ["Debe tener autorización con token" ],
+    responseExample: JSON.stringify([{    "message": "Notas del episodio obtenidas correctamente",    "episode_id": 9,    "total": 0,    "notes": []}], null, 2)
+  },
+  {
+    path: "/api/notes",
+    description: "Crea una nota clinica para el episodio dado",
+    method: "POST",
+    bodyExample: JSON.stringify({"episode_id": 9,  "note_text": "Paciente con riesgo de caída. Se refuerzan medidas de seguridad y supervisión."}, null, 2),
+    rules: ["Debe tener autorización con token",
+      "Se debe indicar un ID de episodio valido",
+      "El usuario que lo crea lo obtiene del token",
+      "Guarda fecha y hora del momento que se consume la API"
+    ],
+    responseExample: JSON.stringify([{    "message": "Nota clínica creada correctamente",    "note": {        "id": 1,        "episode_id": 9,        "created_by": 3,        "note_text": "Paciente con riesgo de caída. Se refuerzan medidas de seguridad y supervisión.",        "created_at": "2026-02-06T23:11:16.622Z"    }}], null, 2)
   }
 ];
 

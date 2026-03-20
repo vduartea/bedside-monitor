@@ -4,7 +4,7 @@ const upsertScaleFull = async (req, res) => {
   const client = await pool.connect();
 
   try {
-    const { id, name, description, version, thresholds, questions } = req.body;
+    const { id, name, description, version, thresholds, is_active, questions } = req.body;
 
     // ===== Validaciones mínimas =====
     if (!name || typeof name !== "string" || !name.trim()) {
@@ -33,6 +33,13 @@ const upsertScaleFull = async (req, res) => {
       if (q.is_multi_select !== undefined && typeof q.is_multi_select !== "boolean") {
         return res.status(400).json({
           message: `questions[${i}].is_multi_select debe ser boolean.`,
+        });
+      }
+
+      // priority default false
+      if (q.priority !== undefined && typeof q.priority !== "boolean") {
+        return res.status(400).json({
+          message: `questions[${i}].priority debe ser boolean.`,
         });
       }
 
@@ -106,10 +113,11 @@ const upsertScaleFull = async (req, res) => {
 
       // Insert preguntas + opciones
       const insertQuestionQuery = `
-        INSERT INTO scale_question (scale_id, question, max_score, order_index, is_multi_select)
-        VALUES ($1, $2, $3, $4, $5)
+        INSERT INTO scale_question (scale_id, question, max_score, order_index, is_multi_select, priority)
+        VALUES ($1, $2, $3, $4, $5, $6)
         RETURNING *;
       `;
+      
 
       const insertOptionQuery = `
         INSERT INTO scale_question_option (question_id, option_text, score, order_index)
@@ -125,6 +133,7 @@ const upsertScaleFull = async (req, res) => {
           q.max_score ?? null,
           q.order_index,
           q.is_multi_select ?? false,
+          q.priority ?? false, 
         ]);
 
         const insertedQ = qRes.rows[0];
@@ -172,8 +181,8 @@ const upsertScaleFull = async (req, res) => {
     scaleRow = created.rows[0];
 
     const insertQuestionQuery = `
-      INSERT INTO scale_question (scale_id, question, max_score, order_index, is_multi_select)
-      VALUES ($1, $2, $3, $4, $5)
+      INSERT INTO scale_question (scale_id, question, max_score, order_index, is_multi_select, priority)
+      VALUES ($1, $2, $3, $4, $5, $6)
       RETURNING *;
     `;
 
@@ -191,6 +200,7 @@ const upsertScaleFull = async (req, res) => {
         q.max_score ?? null,
         q.order_index,
         q.is_multi_select ?? false,
+        q.priority ?? false,
       ]);
 
       const insertedQ = qRes.rows[0];
@@ -208,7 +218,7 @@ const upsertScaleFull = async (req, res) => {
         }
       }
 
-      insertedQuestions.push({ ...insertedQ, options: insertedOptions });
+      insertedQuestions.push({ ...insertedQ, options });
     }
 
     await client.query("COMMIT");
@@ -240,29 +250,19 @@ const getAllScalesFull = async (req, res) => {
         s.*,
         COALESCE(
           json_agg(
-            json_build_object(
-              'id', sq.id,
-              'scale_id', sq.scale_id,
-              'question', sq.question,
-              'max_score', sq.max_score,
-              'order_index', sq.order_index,
-              'is_multi_select', sq.is_multi_select,
-              'created_at', sq.created_at,
-              'options', COALESCE((
-                SELECT json_agg(
-                  json_build_object(
-                    'id', so.id,
-                    'question_id', so.question_id,
-                    'option_text', so.option_text,
-                    'score', so.score,
-                    'order_index', so.order_index,
-                    'created_at', so.created_at
+            (
+              to_jsonb(sq)
+              ||
+              jsonb_build_object(
+                'options', COALESCE((
+                  SELECT json_agg(
+                    to_jsonb(so)
+                    ORDER BY so.order_index NULLS LAST, so.id
                   )
-                  ORDER BY so.order_index NULLS LAST, so.id
-                )
-                FROM scale_question_option so
-                WHERE so.question_id = sq.id
-              ), '[]'::json)
+                  FROM scale_question_option so
+                  WHERE so.question_id = sq.id
+                ), '[]'::json)
+              )
             )
             ORDER BY sq.order_index
           ) FILTER (WHERE sq.id IS NOT NULL),
@@ -273,6 +273,7 @@ const getAllScalesFull = async (req, res) => {
       GROUP BY s.id
       ORDER BY s.id;
     `;
+
 
     const result = await pool.query(query);
 
